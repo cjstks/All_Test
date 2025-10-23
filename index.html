@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESXi/VCSA/AD Full Simulation - Detailed</title>
+<style>
+body {
+  margin:0; font-family:'Segoe UI',Tahoma,sans-serif;
+  background:#1e1e1e; color:#fff; overflow-x:hidden;
+}
+header {
+  background:#222; padding:10px; display:flex; justify-content: space-between; align-items:center;
+}
+header h1 { font-size:1.2em; }
+button { padding:5px 10px; cursor:pointer; border:none; border-radius:3px; background:#007ACC; color:#fff; }
+main { position:relative; width:100%; height:90vh; background:#111; overflow:hidden; }
+
+/* 공통 화면 */
+.simulation-step { display:none; width:100%; height:100%; position:absolute; top:0; left:0; }
+.simulation-step.active { display:block; animation:fadeIn 0.5s; }
+@keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
+
+/* 마우스 커서 */
+.mouse-cursor {
+  width:20px; height:30px; position:absolute;
+  background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="30"><polygon points="0,0 0,30 10,20 20,30" fill="white"/></svg>') no-repeat center center;
+  pointer-events:none; z-index:999; transition: all 0.5s ease;
+}
+
+/* 공통 GUI 스타일 */
+.window {
+  width:90%; height:90%; background:#2c2c2c; margin:auto; margin-top:2%; border-radius:5px; padding:10px;
+  box-shadow:0 0 20px rgba(0,0,0,0.5);
+}
+.screen {
+  width:100%; height:80%; background:#1a1a1a; border-radius:5px; padding:10px; overflow:auto;
+  position:relative;
+}
+.input-box { background:#333; padding:5px; border-radius:3px; color:#fff; margin:3px 0; }
+.btn { background:#007ACC; padding:3px 8px; border-radius:3px; margin:3px; cursor:pointer; display:inline-block; }
+.table { width:100%; border-collapse:collapse; }
+.table th, .table td { border:1px solid #555; padding:3px; }
+
+/* 클릭 시 하이라이트 */
+.highlight { border:2px solid #0f0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ESXi/VCSA/AD Full Simulation (Detailed)</h1>
+  <div>
+    <button id="startBtn">시뮬레이션 시작</button>
+    <button id="nextBtn">다음 단계</button>
+    <button id="prevBtn">이전 단계</button>
+  </div>
+</header>
+<main>
+  <!-- iDRAC 로그인 -->
+  <div id="step-idrac" class="simulation-step active">
+    <div class="window">
+      <h2>iDRAC 원격 접속</h2>
+      <div class="screen">
+        <p>iDRAC 로그인 화면</p>
+        <div class="input-box" id="idrac-user">admin</div>
+        <div class="input-box" id="idrac-pass">password</div>
+        <div class="btn" id="idrac-login-btn">로그인</div>
+      </div>
+      <div class="mouse-cursor" id="cursor-idrac"></div>
+    </div>
+  </div>
+
+  <!-- ESXi 설치 -->
+  <div id="step-esxi-install" class="simulation-step">
+    <div class="window">
+      <h2>ESXi 설치</h2>
+      <div class="screen" id="esxi-install-ui">
+        <p>ESXi ISO 로딩 중...</p>
+        <div class="btn" id="esxi-next-btn">설치 시작</div>
+        <p>설치 진행 상태: <span id="esxi-progress">0%</span></p>
+      </div>
+      <div class="mouse-cursor" id="cursor-esxi"></div>
+    </div>
+  </div>
+
+  <!-- ESXi 네트워크 설정 -->
+  <div id="step-esxi-network" class="simulation-step">
+    <div class="window">
+      <h2>ESXi 네트워크 설정</h2>
+      <div class="screen">
+        <p>ESXi-01: <span class="input-box">192.168.0.111</span></p>
+        <p>ESXi-02: <span class="input-box">192.168.0.112</span></p>
+        <p>ESXi-03: <span class="input-box">192.168.0.113</span></p>
+        <p>ESXi-04: <span class="input-box">192.168.0.114</span></p>
+        <p>Gateway: <span class="input-box">192.168.0.1</span></p>
+        <p>SSH: Disabled</p>
+        <div class="btn" id="esxi-network-save">저장</div>
+      </div>
+      <div class="mouse-cursor" id="cursor-esxi-net"></div>
+    </div>
+  </div>
+
+  <!-- vSphere 데이터센터 생성 -->
+  <div id="step-vsphere-dc" class="simulation-step">
+    <div class="window">
+      <h2>vSphere Client - 데이터센터 생성</h2>
+      <div class="screen" id="datacenter-ui">
+        <p>데이터센터 이름 입력: <span class="input-box">Datacenter01</span></p>
+        <div class="btn" id="dc-create-btn">생성</div>
+      </div>
+      <div class="mouse-cursor" id="cursor-dc"></div>
+    </div>
+  </div>
+
+  <!-- 호스트 등록 -->
+  <div id="step-vsphere-host" class="simulation-step">
+    <div class="window">
+      <h2>호스트 등록</h2>
+      <div class="screen" id="host-ui">
+        <table class="table">
+          <thead><tr><th>호스트</th><th>IP</th><th>상태</th></tr></thead>
+          <tbody>
+            <tr><td>ESXi-01</td><td>192.168.0.111</td><td>등록 대기</td></tr>
+            <tr><td>ESXi-02</td><td>192.168.0.112</td><td>등록 대기</td></tr>
+            <tr><td>ESXi-03</td><td>192.168.0.113</td><td>등록 대기</td></tr>
+            <tr><td>ESXi-04</td><td>192.168.0.114</td><td>등록 대기</td></tr>
+          </tbody>
+        </table>
+        <div class="btn" id="host-register-btn">호스트 등록</div>
+      </div>
+      <div class="mouse-cursor" id="cursor-host"></div>
+    </div>
+  </div>
+
+  <!-- Windows Server AD/DNS -->
+  <div id="step-win-server" class="simulation-step">
+    <div class="window">
+      <h2>Windows Server - AD/DNS 설치</h2>
+      <div class="screen">
+        <p>AD 설치</p>
+        <div class="btn" id="ad-install-btn">설치 시작</div>
+        <p>OU 생성: L1-Admin, L2-Admin, Users</p>
+        <p>사용자 생성: Admin01, User01</p>
+        <p>그룹 생성 및 사용자 할당</p>
+        <p>DNS 설정: Forward Lookup Zone - labshandson.lan</p>
+        <div class="btn" id="dns-config-btn">DNS 설정 완료</div>
+      </div>
+      <div class="mouse-cursor" id="cursor-win-server"></div>
+    </div>
+  </div>
+
+  <!-- Win10 도메인 조인 -->
+  <div id="step-win10-join" class="simulation-step">
+    <div class="window">
+      <h2>Win10 도메인 조인</h2>
+      <p>컴퓨터 이름: WIN10-01</p>
+      <p>도메인: labshandson.lan</p>
+      <div class="btn" id="win10-join-btn">도메인 조인</div>
+      <div class="mouse-cursor" id="cursor-win10"></div>
+    </div>
+  </div>
+
+  <!-- VCSA 설치 -->
+  <div id="step-vcsa" class="simulation-step">
+    <div class="window">
+      <h2>VCSA 설치</h2>
+      <p>Win10에서 VCSA 설치 파일 실행</p>
+      <div class="btn" id="vcsa-start-btn">설치 시작</div>
+      <div class="mouse-cursor" id="cursor-vcsa"></div>
+    </div>
+  </div>
+
+  <!-- iSCSI/LUN/VMFS -->
+  <div id="step-iscsi" class="simulation-step">
+    <div class="window">
+      <h2>iSCSI / LUN / VMFS</h2>
+      <div class="screen">
+        <div class="btn" id="lun-create-btn">LUN 생성</div>
+        <div class="btn" id="iscsi-init-btn">Initiator 설정</div>
+        <div class="btn" id="vmfs-create-btn">데이터스토어 생성</div>
+      </div>
+      <div class="mouse-cursor" id="cursor-iscsi"></div>
+    </div>
+  </div>
+
+  <!-- 다중 경로 구성 -->
+  <div id="step-multipath" class="simulation-step">
+    <div class="window">
+      <h2>다중 경로 구성</h2>
+      <p>경로 2개 확인</p>
+      <div class="btn" id="multipath-btn">적용</div>
+      <div class="mouse-cursor" id="cursor-multipath"></div>
+    </div>
+  </div>
+
+  <!-- ESXi 안 가상머신 생성 -->
+  <div id="step-vm-create" class="simulation-step">
+    <div class="window">
+      <h2>ESXi 안에서 VM 생성</h2>
+      <div class="btn" id="vm-create-btn">생성</div>
+      <div class="mouse-cursor" id="cursor-vm"></div>
+    </div>
+  </div>
+
+  <!-- 인프라 구축 완료 -->
+  <div id="step-infra-done" class="simulation-step">
+    <div class="window">
+      <h2>인프라 구축 완료</h2>
+      <p>모든 ESXi, vCenter, AD, iSCSI 설정 완료</p>
+      <p>생동감 있는 인프라 시뮬레이션 완료 화면</p>
+      <div class="mouse-cursor" id="cursor-infra"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+let currentStep = 0;
+const steps = document.querySelectorAll('.simulation-step');
+const cursorPositions = {
+  'step-idrac': [{x:100,y:50},{x:100,y:80}],
+  'step-esxi-install': [{x:200,y:100},{x:220,y:120}],
+  'step-esxi-network': [{x:150,y:120},{x:180,y:150}],
+  'step-vsphere-dc': [{x:180,y:80},{x:220,y:100}],
+  'step-vsphere-host': [{x:200,y:150},{x:220,y:180}],
+  'step-win-server': [{x:160,y:100},{x:200,y:200}],
+  'step-win10-join': [{x:100,y:100}],
+  'step-vcsa': [{x:200,y:200}],
+  'step-iscsi': [{x:150,y:200},{x:180,y:220},{x:200,y:240}],
+  'step-multipath': [{x:180,y:100}],
+  'step-vm-create': [{x:150,y:120}],
+  'step-infra-done': [{x:100,y:100}],
+};
+
+function showStep(index){
+  steps.forEach((s,i)=> s.classList.toggle('active', i===index));
+}
+
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  currentStep = 0;
+  showStep(currentStep);
+  playMouseAnimation(steps[currentStep].id);
+});
+
+document.getElementById('nextBtn').addEventListener('click', ()=>{
+  if(currentStep<steps.length-1) currentStep++;
+  showStep(currentStep);
+  playMouseAnimation(steps[currentStep].id);
+});
+
+document.getElementById('prevBtn').addEventListener('click', ()=>{
+  if(currentStep>0) currentStep--;
+  showStep(currentStep);
+  playMouseAnimation(steps[currentStep].id);
+});
+
+function playMouseAnimation(stepId){
+  const step = document.getElementById(stepId);
+  const cursor = step.querySelector('.mouse-cursor');
+  if(!cursor) return;
+  const positions = cursorPositions[stepId];
+  if(!positions) return;
+  let i=0;
+  function moveCursor(){
+    if(i>=positions.length) return;
+    cursor.style.left = positions[i].x+'px';
+    cursor.style.top = positions[i].y+'px';
+    i++;
+    setTimeout(moveCursor,1000);
+  }
+  moveCursor();
+}
+
+// ESXi 설치 진행 상태
+const esxiProgress = document.getElementById('esxi-progress');
+if(esxiProgress){
+  document.getElementById('esxi-next-btn').addEventListener('click',()=>{
+    let p=0;
+    function stepProgress(){
+      if(p>100) return;
+      esxiProgress.innerText=p+'%';
+      p+=10;
+      setTimeout(stepProgress,500);
+    }
+    stepProgress();
+  });
+}
+</script>
+</body>
+</html>
