@@ -815,6 +815,9 @@ body {
 </div>
 
 <script>
+let autoPlay = false;
+let autoPlayInterval;
+
 const steps = document.querySelectorAll('.step');
 let currentStep = 0;
 const totalSteps = steps.length;
@@ -835,21 +838,43 @@ document.getElementById('prevBtn').addEventListener('click', () => {
     showStep(currentStep);
   }
 });
+
 document.getElementById('nextBtn').addEventListener('click', () => {
   if (currentStep < totalSteps - 1) {
     currentStep++;
     showStep(currentStep);
   }
 });
+
 document.getElementById('playBtn').addEventListener('click', () => {
-  if (currentStep < totalSteps - 1) {
-    currentStep++;
-    showStep(currentStep);
+  if (!autoPlay) {
+    autoPlay = true;
+    document.getElementById('playBtn').innerText = '⏸ 일시정지';
+    autoPlayInterval = setInterval(() => {
+      if (currentStep < totalSteps - 1) {
+        currentStep++;
+        showStep(currentStep);
+      } else {
+        clearInterval(autoPlayInterval);
+        autoPlay = false;
+        document.getElementById('playBtn').innerText = '▶ 재생';
+      }
+    }, 2000); // 2초마다 자동 진행
+  } else {
+    autoPlay = false;
+    document.getElementById('playBtn').innerText = '▶ 재생';
+    clearInterval(autoPlayInterval);
   }
 });
+
 document.getElementById('restartBtn').addEventListener('click', () => {
   currentStep = 0;
   showStep(currentStep);
+  if (autoPlay) {
+    clearInterval(autoPlayInterval);
+    autoPlay = false;
+    document.getElementById('playBtn').innerText = '▶ 재생';
+  }
 });
 </script>
 </body>
