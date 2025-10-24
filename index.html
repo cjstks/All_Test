@@ -1,1162 +1,1242 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ESXi/VCSA 실감나는 인프라 시뮬레이션</title>
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-  background: #0a0a0a;
-  color: #fff;
-  overflow: hidden;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESXi/VCSA 실감나는 인프라 시뮬레이션</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+          background: #0a0a0a;
+          color: #fff;
+          overflow: hidden;
+        }
 
-.control-panel {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  padding: 15px 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-  position: relative;
-  z-index: 1000;
-}
-.control-panel h1 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #4fc3f7;
-}
-.controls button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  padding: 10px 20px;
-  margin-left: 10px;
-  border-radius: 6px;
-  color: #fff;
-  cursor: pointer;
-  font-weight: 600;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.controls button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-.controls button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-.step-indicator {
-  background: rgba(255,255,255,0.1);
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 13px;
-  backdrop-filter: blur(10px);
-}
+        .control-panel {
+          background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+          padding: 15px 30px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+          position: relative;
+          z-index: 1000;
+        }
+        .control-panel h1 {
+          font-size: 18px;
+          font-weight: 600;
+          color: #4fc3f7;
+        }
+        .controls button {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border: none;
+          padding: 10px 20px;
+          margin-left: 10px;
+          border-radius: 6px;
+          color: #fff;
+          cursor: pointer;
+          font-weight: 600;
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .controls button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .controls button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+        }
+        .step-indicator {
+          background: rgba(255,255,255,0.1);
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 13px;
+          backdrop-filter: blur(10px);
+        }
 
-.screen-container {
-  width: 100%;
-  height: calc(100vh - 80px);
-  position: relative;
-  background: #000;
-  overflow: hidden;
-}
+        .screen-container {
+          width: 100%;
+          height: calc(100vh - 80px);
+          position: relative;
+          background: #000;
+          overflow: hidden;
+        }
 
-.step {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s ease;
-}
-.step.active {
-  opacity: 1;
-  pointer-events: auto;
-}
+        .step {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.5s ease;
+        }
+        .step.active {
+          opacity: 1;
+          pointer-events: auto;
+        }
 
-.cursor {
-  position: absolute;
-  width: 24px;
-  height: 24px;
-  pointer-events: none;
-  z-index: 9999;
-  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-  opacity: 0;
-}
-.cursor.visible {
-  opacity: 1;
-}
-.cursor svg {
-  width: 100%;
-  height: 100%;
-}
-.cursor-click {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border: 2px solid #4fc3f7;
-  border-radius: 50%;
-  transform: translate(-50%, -50%) scale(0);
-  pointer-events: none;
-  z-index: 9998;
-}
-.cursor-click.animate {
-  animation: clickRipple 0.6s ease-out;
-}
-@keyframes clickRipple {
-  to {
-    transform: translate(-50%, -50%) scale(1.5);
-    opacity: 0;
-  }
-}
+        .cursor {
+          position: absolute;
+          width: 24px;
+          height: 24px;
+          pointer-events: none;
+          z-index: 9999;
+          transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+          opacity: 0;
+        }
+        .cursor.visible {
+          opacity: 1;
+        }
+        .cursor svg {
+          width: 100%;
+          height: 100%;
+        }
+        .cursor-click {
+          position: absolute;
+          width: 40px;
+          height: 40px;
+          border: 2px solid #4fc3f7;
+          border-radius: 50%;
+          transform: translate(-50%, -50%) scale(0);
+          pointer-events: none;
+          z-index: 9998;
+        }
+        .cursor-click.animate {
+          animation: clickRipple 0.6s ease-out;
+        }
+        @keyframes clickRipple {
+          to {
+            transform: translate(-50%, -50%) scale(1.5);
+            opacity: 0;
+          }
+        }
 
-/* iDRAC */
-.idrac-screen {
-  background: linear-gradient(135deg, #434343 0%, #282828 100%);
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.idrac-box {
-  background: #3a3a3a;
-  border-radius: 8px;
-  padding: 40px;
-  width: 480px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-}
-.idrac-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #555;
-}
-.dell-logo {
-  width: 60px;
-  height: 60px;
-  background: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  color: #0076ce;
-  margin-right: 15px;
-  font-size: 24px;
-}
-.idrac-title h2 {
-  font-size: 16px;
-  margin-bottom: 4px;
-}
-.idrac-title p {
-  font-size: 12px;
-  color: #aaa;
-}
-.form-group {
-  margin-bottom: 20px;
-}
-.form-group label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
-  color: #ccc;
-}
-.form-group input, .form-group select {
-  width: 100%;
-  padding: 10px;
-  background: #2a2a2a;
-  border: 1px solid #555;
-  border-radius: 4px;
-  color: #fff;
-  font-size: 14px;
-  transition: border-color 0.3s;
-}
-.form-group input:focus, .form-group select:focus {
-  outline: none;
-  border-color: #0076ce;
-  box-shadow: 0 0 0 2px rgba(0, 118, 206, 0.2);
-}
-.form-group input.typing {
-  border-color: #0076ce;
-}
-.btn-submit {
-  width: 100%;
-  padding: 12px;
-  background: #0076ce;
-  border: none;
-  border-radius: 4px;
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 10px;
-  transition: background 0.3s;
-}
-.btn-submit:hover {
-  background: #005a9e;
-}
+        .idrac-screen {
+          background: linear-gradient(135deg, #434343 0%, #282828 100%);
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .idrac-box {
+          background: #3a3a3a;
+          border-radius: 8px;
+          padding: 40px;
+          width: 480px;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .idrac-header {
+          display: flex;
+          align-items: center;
+          margin-bottom: 30px;
+          padding-bottom: 20px;
+          border-bottom: 1px solid #555;
+        }
+        .dell-logo {
+          width: 60px;
+          height: 60px;
+          background: #fff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          color: #0076ce;
+          margin-right: 15px;
+          font-size: 24px;
+        }
+        .idrac-title h2 {
+          font-size: 16px;
+          margin-bottom: 4px;
+        }
+        .idrac-title p {
+          font-size: 12px;
+          color: #aaa;
+        }
+        .form-group {
+          margin-bottom: 20px;
+        }
+        .form-group label {
+          display: block;
+          margin-bottom: 6px;
+          font-size: 13px;
+          color: #ccc;
+        }
+        .form-group input, .form-group select {
+          width: 100%;
+          padding: 10px;
+          background: #2a2a2a;
+          border: 1px solid #555;
+          border-radius: 4px;
+          color: #fff;
+          font-size: 14px;
+          transition: border-color 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus {
+          outline: none;
+          border-color: #0076ce;
+          box-shadow: 0 0 0 2px rgba(0, 118, 206, 0.2);
+        }
+        .form-group input.typing {
+          border-color: #0076ce;
+        }
+        .btn-submit {
+          width: 100%;
+          padding: 12px;
+          background: #0076ce;
+          border: none;
+          border-radius: 4px;
+          color: #fff;
+          font-weight: 600;
+          cursor: pointer;
+          margin-top: 10px;
+          transition: background 0.3s;
+        }
+        .btn-submit:hover {
+          background: #005a9e;
+        }
 
-/* ESXi Install */
-.esxi-install-screen {
-  background: #000;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Courier New', monospace;
-}
-.esxi-header {
-  color: #ffcc00;
-  font-size: 24px;
-  margin-bottom: 40px;
-}
-.install-options {
-  background: #1a1a1a;
-  border: 2px solid #ffcc00;
-  padding: 30px;
-  max-width: 600px;
-}
-.install-option {
-  padding: 15px;
-  margin: 10px 0;
-  background: #000;
-  border: 1px solid #555;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-.install-option:hover, .install-option.selected {
-  background: #333;
-  border-color: #ffcc00;
-  transform: translateX(10px);
-}
-.progress-bar {
-  width: 100%;
-  height: 30px;
-  background: #1a1a1a;
-  border: 1px solid #ffcc00;
-  margin-top: 30px;
-  position: relative;
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #ffcc00, #ff9900);
-  width: 0%;
-  transition: width 0.3s;
-}
-.progress-text {
-  position: absolute;
-  width: 100%;
-  text-align: center;
-  line-height: 30px;
-  color: #fff;
-  font-weight: bold;
-}
+        .esxi-install-screen {
+          background: #000;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Courier New', monospace;
+        }
+        .esxi-header {
+          color: #ffcc00;
+          font-size: 24px;
+          margin-bottom: 40px;
+        }
+        .install-options {
+          background: #1a1a1a;
+          border: 2px solid #ffcc00;
+          padding: 30px;
+          max-width: 600px;
+        }
+        .install-option {
+          padding: 15px;
+          margin: 10px 0;
+          background: #000;
+          border: 1px solid #555;
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+        .install-option:hover, .install-option.selected {
+          background: #333;
+          border-color: #ffcc00;
+          transform: translateX(10px);
+        }
+        .progress-bar {
+          width: 100%;
+          height: 30px;
+          background: #1a1a1a;
+          border: 1px solid #ffcc00;
+          margin-top: 30px;
+          position: relative;
+          overflow: hidden;
+        }
+        .progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #ffcc00, #ff9900);
+          width: 0%;
+          transition: width 0.3s;
+        }
+        .progress-text {
+          position: absolute;
+          width: 100%;
+          text-align: center;
+          line-height: 30px;
+          color: #fff;
+          font-weight: bold;
+        }
 
-/* ESXi Client */
-.esxi-client {
-  background: #1c1e21;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-.esxi-nav {
-  background: #2d3a4b;
-  padding: 0 20px;
-  display: flex;
-  align-items: center;
-  height: 50px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-}
-.esxi-logo {
-  color: #4fc3f7;
-  font-weight: bold;
-  margin-right: 30px;
-}
-.esxi-nav-item {
-  padding: 15px 20px;
-  cursor: pointer;
-  transition: background 0.3s;
-  color: #aaa;
-}
-.esxi-nav-item:hover, .esxi-nav-item.active {
-  background: #1c1e21;
-  color: #fff;
-}
-.esxi-main {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-.esxi-sidebar {
-  width: 250px;
-  background: #252830;
-  padding: 20px;
-}
-.esxi-content {
-  flex: 1;
-  padding: 30px;
-  overflow-y: auto;
-}
-.vm-list {
-  background: #2a2d35;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.vm-item {
-  padding: 15px 20px;
-  border-bottom: 1px solid #1c1e21;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.vm-status {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #4caf50;
-  display: inline-block;
-  margin-right: 10px;
-}
-.tree-item {
-  padding: 8px 12px;
-  margin: 4px 0;
-  cursor: pointer;
-  border-radius: 4px;
-}
-.tree-item.selected {
-  background: #2a4557;
-}
+        .esxi-client {
+          background: #1c1e21;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+        .esxi-nav {
+          background: #2d3a4b;
+          padding: 0 20px;
+          display: flex;
+          align-items: center;
+          height: 50px;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .esxi-logo {
+          color: #4fc3f7;
+          font-weight: bold;
+          margin-right: 30px;
+        }
+        .esxi-nav-item {
+          padding: 15px 20px;
+          cursor: pointer;
+          transition: background 0.3s;
+          color: #aaa;
+        }
+        .esxi-nav-item:hover, .esxi-nav-item.active {
+          background: #1c1e21;
+          color: #fff;
+        }
+        .esxi-main {
+          display: flex;
+          flex: 1;
+          overflow: hidden;
+        }
+        .esxi-sidebar {
+          width: 250px;
+          background: #252830;
+          padding: 20px;
+        }
+        .esxi-content {
+          flex: 1;
+          padding: 30px;
+          overflow-y: auto;
+        }
+        .vm-list {
+          background: #2a2d35;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        .vm-item {
+          padding: 15px 20px;
+          border-bottom: 1px solid #1c1e21;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .vm-status {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #4caf50;
+          display: inline-block;
+          margin-right: 10px;
+        }
+        .tree-item {
+          padding: 8px 12px;
+          margin: 4px 0;
+          cursor: pointer;
+          border-radius: 4px;
+        }
+        .tree-item.selected {
+          background: #2a4557;
+        }
 
-/* Windows */
-.windows-screen {
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%230078d4" width="100" height="100"/></svg>');
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.server-manager {
-  background: #f0f0f0;
-  color: #000;
-  width: 90%;
-  height: 85%;
-  border-radius: 8px;
-  box-shadow: 0 10px 50px rgba(0,0,0,0.7);
-  display: flex;
-  flex-direction: column;
-}
-.titlebar {
-  background: #fff;
-  padding: 10px 15px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #d0d0d0;
-}
-.titlebar-title {
-  font-weight: 600;
-  font-size: 14px;
-}
-.window-controls {
-  display: flex;
-  gap: 10px;
-}
-.window-btn {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-.menubar {
-  background: #e5e5e5;
-  padding: 8px 15px;
-  display: flex;
-  gap: 20px;
-  font-size: 13px;
-  border-bottom: 1px solid #d0d0d0;
-}
-.server-content {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-.server-sidebar {
-  width: 200px;
-  background: #f8f8f8;
-  border-right: 1px solid #d0d0d0;
-  padding: 20px 10px;
-}
-.server-main {
-  flex: 1;
-  padding: 30px;
-  overflow-y: auto;
-  background: #fff;
-}
-.server-tile {
-  background: #0078d4;
-  color: #fff;
-  padding: 20px;
-  margin: 10px 0;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.spinner {
-  border: 3px solid #333;
-  border-top: 3px solid #4fc3f7;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin: 20px auto;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+        .windows-screen {
+          background: #0078d4;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .server-manager {
+          background: #f0f0f0;
+          color: #000;
+          width: 90%;
+          height: 85%;
+          border-radius: 8px;
+          box-shadow: 0 10px 50px rgba(0,0,0,0.7);
+          display: flex;
+          flex-direction: column;
+        }
+        .titlebar {
+          background: #fff;
+          padding: 10px 15px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid #d0d0d0;
+        }
+        .titlebar-title {
+          font-weight: 600;
+          font-size: 14px;
+        }
+        .window-controls {
+          display: flex;
+          gap: 10px;
+        }
+        .window-btn {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+        }
+        .menubar {
+          background: #e5e5e5;
+          padding: 8px 15px;
+          display: flex;
+          gap: 20px;
+          font-size: 13px;
+          border-bottom: 1px solid #d0d0d0;
+        }
+        .server-content {
+          display: flex;
+          flex: 1;
+          overflow: hidden;
+        }
+        .server-sidebar {
+          width: 200px;
+          background: #f8f8f8;
+          border-right: 1px solid #d0d0d0;
+          padding: 20px 10px;
+        }
+        .server-main {
+          flex: 1;
+          padding: 30px;
+          overflow-y: auto;
+          background: #fff;
+        }
+        .server-tile {
+          background: #0078d4;
+          color: #fff;
+          padding: 20px;
+          margin: 10px 0;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: transform 0.2s;
+        }
+        .server-tile:hover {
+          transform: translateX(5px);
+        }
+        .spinner {
+          border: 3px solid #333;
+          border-top: 3px solid #4fc3f7;
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          animation: spin 1s linear infinite;
+          margin: 20px auto;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
 
-/* vCenter */
-.vcenter-screen {
-  background: #13242e;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-.vcenter-header {
-  background: #1a3547;
-  padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.vcenter-logo {
-  font-weight: bold;
-  color: #4fc3f7;
-  font-size: 18px;
-}
-.vcenter-main {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-.vcenter-tree {
-  width: 280px;
-  background: #0d1b24;
-  padding: 20px;
-}
-.vcenter-content {
-  flex: 1;
-  padding: 30px;
-  overflow-y: auto;
-}
-
-/* Fade transition */
-.fade-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: #000;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 10000;
-  transition: opacity 0.5s ease;
-}
-.fade-overlay.active {
-  opacity: 1;
-}
-</style>
+        .vcenter-screen {
+          background: #13242e;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+        .vcenter-header {
+          background: #1a3547;
+          padding: 12px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .vcenter-logo {
+          font-weight: bold;
+          color: #4fc3f7;
+          font-size: 18px;
+        }
+        .vcenter-main {
+          display: flex;
+          flex: 1;
+          overflow: hidden;
+        }
+        .vcenter-tree {
+          width: 280px;
+          background: #0d1b24;
+          padding: 20px;
+        }
+        .vcenter-content {
+          flex: 1;
+          padding: 30px;
+          overflow-y: auto;
+        }
+        .storage-item {
+          background: #2a2d35;
+          padding: 20px;
+          margin: 10px 0;
+          border-radius: 8px;
+          border-left: 4px solid #4fc3f7;
+        }
+        .user-list {
+          background: #fff;
+          border-radius: 4px;
+          margin-top: 20px;
+        }
+        .user-item {
+          padding: 15px;
+          border-bottom: 1px solid #e0e0e0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          color: #333;
+        }
+        .fade-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: #000;
+          opacity: 0;
+          pointer-events: none;
+          z-index: 10000;
+          transition: opacity 0.5s ease;
+        }
+        .fade-overlay.active {
+          opacity: 1;
+        }
+        .complete-screen {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+        }
+        .complete-icon {
+          font-size: 120px;
+          margin-bottom: 30px;
+          animation: scaleIn 0.5s ease;
+        }
+        @keyframes scaleIn {
+          from {
+            transform: scale(0);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+        .summary-box {
+          background: rgba(255,255,255,0.1);
+          backdrop-filter: blur(10px);
+          border-radius: 12px;
+          padding: 30px 50px;
+          margin-top: 20px;
+          max-width: 600px;
+        }
+        .summary-item {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px 0;
+          border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        .summary-item:last-child {
+          border-bottom: none;
+        }
+    </style>
 </head>
 <body>
 
 <div class="control-panel">
-  <h1>🖥️ ESXi/VCSA 인프라 구축 시뮬레이션</h1>
-  <div class="step-indicator">
-    단계 <span id="currentStep">1</span> / <span id="totalSteps">10</span>
-  </div>
-  <div class="controls">
-    <button id="prevBtn">← 이전</button>
-    <button id="playBtn">▶ 재생</button>
-    <button id="nextBtn">다음 →</button>
-  </div>
+    <h1>🖥️ ESXi/VCSA 인프라 구축 시뮬레이션</h1>
+    <div class="step-indicator">
+        단계 <span id="currentStep">1</span> / <span id="totalSteps">13</span>
+    </div>
+    <div class="controls">
+        <button id="prevBtn">← 이전</button>
+        <button id="playBtn">▶ 재생</button>
+        <button id="nextBtn">다음 →</button>
+    </div>
 </div>
 
 <div class="screen-container">
-  <div class="cursor" id="cursor">
-    <svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="1">
-      <path d="M3 3 L3 17 L9 11 L13 18 L15 17 L11 10 L18 10 Z"/>
-    </svg>
-  </div>
-  <div class="cursor-click" id="cursorClick"></div>
-
-  <!-- Step 1: iDRAC 로그인 -->
-  <div class="step active" id="step1">
-    <div class="idrac-screen">
-      <div class="idrac-box">
-        <div class="idrac-header">
-          <div class="dell-logo">DELL</div>
-          <div class="idrac-title">
-            <h2>Integrated Dell Remote Access Controller 8</h2>
-            <p>PowerEdge R630 - iDRAC-G25P4J2</p>
-          </div>
-        </div>
-        <h3 style="margin-bottom: 20px;">Login</h3>
-        <div class="form-group">
-          <label>Username:</label>
-          <input type="text" id="username" value="" readonly>
-        </div>
-        <div class="form-group">
-          <label>Password:</label>
-          <input type="password" id="password" value="" readonly>
-        </div>
-        <div class="form-group">
-          <label>Domain:</label>
-          <select><option>This iDRAC</option></select>
-        </div>
-        <button class="btn-submit" id="loginBtn">Submit</button>
-      </div>
+    <div class="cursor" id="cursor">
+        <svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="1">
+            <path d="M3 3 L3 17 L9 11 L13 18 L15 17 L11 10 L18 10 Z"/>
+        </svg>
     </div>
-  </div>
+    <div class="cursor-click" id="cursorClick"></div>
 
-  <!-- Step 2: ESXi 설치 -->
-  <div class="step" id="step2">
-    <div class="esxi-install-screen">
-      <div class="esxi-header">VMware ESXi 8.0 Installer</div>
-      <div class="install-options">
-        <div class="install-option" id="opt1">
-          <strong>▸</strong> Install ESXi
+    <!-- Step 1: iDRAC 로그인 -->
+    <div class="step active" id="step1">
+        <div class="idrac-screen">
+            <div class="idrac-box">
+                <div class="idrac-header">
+                    <div class="dell-logo">DELL</div>
+                    <div class="idrac-title">
+                        <h2>Integrated Dell Remote Access Controller 8</h2>
+                        <p>PowerEdge R630 - iDRAC-G25P4J2</p>
+                    </div>
+                </div>
+                <h3 style="margin-bottom: 20px;">Login</h3>
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="username" value="" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="password" value="" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Domain:</label>
+                    <select><option>This iDRAC</option></select>
+                </div>
+                <button class="btn-submit" id="loginBtn">Submit</button>
+            </div>
         </div>
-        <div class="install-option">
-          <strong>▸</strong> Upgrade ESXi
-        </div>
-        <div class="install-option">
-          <strong>▸</strong> Boot from Local Disk
-        </div>
-        <div style="margin-top: 30px; color: #aaa; font-size: 13px;">
-          Press Enter to continue with the selected option
-        </div>
-      </div>
-      <div class="progress-bar" id="installProgress" style="display:none; max-width: 600px;">
-        <div class="progress-fill" id="progressFill"></div>
-        <div class="progress-text" id="progressText">Installing... 0%</div>
-      </div>
     </div>
-  </div>
 
-  <!-- Step 3: ESXi 네트워크 설정 -->
-  <div class="step" id="step3">
-    <div class="esxi-client">
-      <div class="esxi-nav">
-        <div class="esxi-logo">ESXi 호스트 클라이언트</div>
-        <div class="esxi-nav-item active">네트워킹</div>
-        <div style="margin-left: auto; color: #aaa;">root@esxi-01.vclass.rap3 ▼</div>
-      </div>
-      <div class="esxi-main">
-        <div class="esxi-sidebar">
-          <div class="tree-item selected">🌐 네트워킹</div>
-          <div class="tree-item">🖥️ 가상 시스템</div>
-          <div class="tree-item">💾 스토리지</div>
+    <!-- Step 2: ESXi 설치 -->
+    <div class="step" id="step2">
+        <div class="esxi-install-screen">
+            <div class="esxi-header">VMware ESXi 8.0 Installer</div>
+            <div class="install-options" id="installOptions">
+                <div class="install-option" id="opt1">
+                    <strong>▸</strong> Install ESXi
+                </div>
+                <div class="install-option">
+                    <strong>▸</strong> Upgrade ESXi
+                </div>
+                <div class="install-option">
+                    <strong>▸</strong> Boot from Local Disk
+                </div>
+                <div style="margin-top: 30px; color: #aaa; font-size: 13px;">
+                    Press Enter to continue with the selected option
+                </div>
+            </div>
+            <div class="progress-bar" id="installProgress" style="display:none; max-width: 600px;">
+                <div class="progress-fill" id="progressFill"></div>
+                <div class="progress-text" id="progressText">Installing... 0%</div>
+            </div>
         </div>
-        <div class="esxi-content">
-          <h2 style="margin-bottom: 20px;">네트워크 설정</h2>
-          <div class="vm-list">
-            <div class="vm-item">
-              <div><strong>IP 주소</strong></div>
-              <div id="ipAddress">192.168.0.111</div>
-            </div>
-            <div class="vm-item">
-              <div><strong>서브넷 마스크</strong></div>
-              <div>255.255.255.0</div>
-            </div>
-            <div class="vm-item">
-              <div><strong>게이트웨이</strong></div>
-              <div>192.168.0.1</div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
 
-  <!-- Step 4: Windows Server AD/DNS -->
-  <div class="step" id="step4">
-    <div class="windows-screen">
-      <div class="server-manager">
-        <div class="titlebar">
-          <div class="titlebar-title">Server Manager</div>
-          <div class="window-controls">
-            <div class="window-btn" style="background: #4caf50;"></div>
-            <div class="window-btn" style="background: #ff9800;"></div>
-            <div class="window-btn" style="background: #f44336;"></div>
-          </div>
-        </div>
-        <div class="menubar">
-          <div>파일</div>
-          <div>도구</div>
-          <div>도움말</div>
-        </div>
-        <div class="server-content">
-          <div class="server-sidebar">
-            <div class="tree-item selected">대시보드</div>
-            <div class="tree-item">로컬 서버</div>
-            <div class="tree-item">역할 및 기능</div>
-          </div>
-          <div class="server-main">
-            <h2 style="margin-bottom: 20px;">역할 및 기능 추가</h2>
-            <div class="server-tile" id="addRoleBtn">
-              <strong>Active Directory Domain Services</strong><br>
-              <span style="font-size: 13px;">도메인 컨트롤러 구성</span>
+    <!-- Step 3: ESXi 로그인 -->
+    <div class="step" id="step3">
+        <div style="background: linear-gradient(135deg, #36495d 0%, #2c3e50 100%); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+            <div style="background: #f5f5f5; border-radius: 4px; padding: 40px; width: 450px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); text-align: center;">
+                <div style="font-size: 32px; font-weight: bold; color: #4a90e2; margin-bottom: 10px;">VMware</div>
+                <h2 style="color: #333; margin-bottom: 10px; font-size: 18px;">ESXi 호스트 클라이언트™</h2>
+                <p style="color: #666; font-size: 13px; margin-bottom: 30px;">esxi-01.vclass.rap3</p>
+                <div class="form-group">
+                    <label style="color: #333; text-align: left;">사용자 이름:</label>
+                    <input type="text" id="esxiUsername" value="" readonly style="background: #fff; color: #333; border: 1px solid #ddd;">
+                </div>
+                <div class="form-group">
+                    <label style="color: #333; text-align: left;">암호:</label>
+                    <input type="password" id="esxiPassword" value="" readonly style="background: #fff; color: #333; border: 1px solid #ddd;">
+                </div>
+                <button id="esxiLoginBtn" style="width: 100%; padding: 12px; background: #0091da; border: none; border-radius: 4px; color: #fff; font-weight: 600; cursor: pointer; margin-top: 10px;">로그인</button>
             </div>
-            <div class="server-tile">
-              <strong>DNS Server</strong><br>
-              <span style="font-size: 13px;">DNS 서비스 구성</span>
-            </div>
-            <div id="adProgress" style="display: none; margin-top: 30px;">
-              <div class="spinner"></div>
-              <p style="text-align: center; margin-top: 10px;">Active Directory 설치 중...</p>
-            </div>
-          </div>
         </div>
-      </div>
     </div>
-  </div>
 
-  <!-- Step 5: vCenter 데이터센터 생성 -->
-  <div class="step" id="step5">
-    <div class="vcenter-screen">
-      <div class="vcenter-header">
-        <div class="vcenter-logo">VMware vSphere Client</div>
-        <div style="color: #aaa;">administrator@vsphere.local ▼</div>
-      </div>
-      <div class="vcenter-main">
-        <div class="vcenter-tree">
-          <div style="margin-bottom: 15px; color: #aaa; font-size: 12px;">인벤토리</div>
-          <div class="tree-item">🏢 VCSA01</div>
-          <div class="tree-item selected">📁 Datacenter01</div>
-          <div class="tree-item" style="padding-left: 20px;">📦 클러스터</div>
-        </div>
-        <div class="vcenter-content">
-          <h2 style="margin-bottom: 20px; color: #fff;">데이터센터 생성 완료</h2>
-          <div class="vm-list">
-            <div class="vm-item">
-              <div><strong>데이터센터 이름</strong></div>
-              <div style="color: #4fc3f7;">Datacenter01</div>
+    <!-- Step 4: ESXi VM 목록 -->
+    <div class="step" id="step4">
+        <div class="esxi-client">
+            <div class="esxi-nav">
+                <div class="esxi-logo">ESXi 호스트 클라이언트</div>
+                <div class="esxi-nav-item active">가상 시스템</div>
+                <div style="margin-left: auto; color: #aaa;">root@esxi-01.vclass.rap3 ▼</div>
             </div>
-            <div class="vm-item">
-              <div><strong>상태</strong></div>
-              <div style="color: #4caf50;">✓ 정상</div>
+            <div class="esxi-main">
+                <div class="esxi-sidebar">
+                    <div class="tree-item">🏠 esxi-01</div>
+                    <div class="tree-item selected" style="padding-left: 20px;">📁 가상 시스템</div>
+                    <div class="tree-item" style="padding-left: 20px;">💾 스토리지</div>
+                    <div class="tree-item" style="padding-left: 20px;">🌐 네트워킹</div>
+                </div>
+                <div class="esxi-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2>가상 시스템</h2>
+                        <button id="createVmBtn" style="padding: 8px 20px; background: #4a90e2; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-weight: 600;">+ VM 생성/등록</button>
+                    </div>
+                    <div class="vm-list">
+                        <div style="padding: 40px; text-align: center; color: #888;">
+                            등록된 가상 시스템이 없습니다
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
     </div>
-  </div>
 
-  <!-- Step 6: 호스트 등록 -->
-  <div class="step" id="step6">
-    <div class="vcenter-screen">
-      <div class="vcenter-header">
-        <div class="vcenter-logo">VMware vSphere Client - 호스트 등록</div>
-      </div>
-      <div class="vcenter-main">
-        <div class="vcenter-tree">
-          <div class="tree-item">🏢 VCSA01</div>
-          <div class="tree-item selected">📁 Datacenter01</div>
-          <div class="tree-item" style="padding-left: 20px;">📦 클러스터</div>
-          <div class="tree-item" style="padding-left: 40px;">🖥️ ESXi-01</div>
-          <div class="tree-item" style="padding-left: 40px;">🖥️ ESXi-02</div>
-          <div class="tree-item" style="padding-left: 40px;">🖥️ ESXi-03</div>
-          <div class="tree-item" style="padding-left: 40px;">🖥️ ESXi-04</div>
+    <!-- Step 5: VM 생성 중 -->
+    <div class="step" id="step5">
+        <div class="esxi-client">
+            <div class="esxi-nav">
+                <div class="esxi-logo">ESXi 호스트 클라이언트</div>
+                <div class="esxi-nav-item active">가상 시스템</div>
+                <div style="margin-left: auto; color: #aaa;">root@esxi-01.vclass.rap3 ▼</div>
+            </div>
+            <div class="esxi-main">
+                <div class="esxi-sidebar">
+                    <div class="tree-item">🏠 esxi-01</div>
+                    <div class="tree-item selected" style="padding-left: 20px;">📁 가상 시스템</div>
+                </div>
+                <div class="esxi-content">
+                    <h2 style="margin-bottom: 20px;">가상 시스템 생성</h2>
+                    <div style="background: #2a2d35; padding: 40px; border-radius: 8px; text-align: center;">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 20px; font-size: 16px;">Pod12-Win2K22-DC 생성 중...</p>
+                        <div class="progress-bar" style="max-width: 400px; margin: 30px auto;">
+                            <div class="progress-fill" id="vmProgressFill" style="background: linear-gradient(90deg, #4a90e2, #357abd);"></div>
+                            <div class="progress-text" id="vmProgressText">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="vcenter-content">
-          <h2 style="margin-bottom: 20px; color: #fff;">호스트 등록 완료</h2>
-          <div class="vm-list">
-            <div class="vm-item">
-              <div>
-                <span class="vm-status"></span>
-                <strong>esxi-01.vclass.rap3</strong>
-              </div>
-              <div style="color: #4caf50;">정상</div>
-            </div>
-            <div class="vm-item">
-              <div>
-                <span class="vm-status"></span>
-                <strong>esxi-02.vclass.rap3</strong>
-              </div>
-              <div style="color: #4caf50;">정상</div>
-            </div>
-            <div class="vm-item">
-              <div>
-                <span class="vm-status"></span>
-                <strong>esxi-03.vclass.rap3</strong>
-              </div>
-              <div style="color: #4caf50;">정상</div>
-            </div>
-            <div class="vm-item">
-              <div>
-                <span class="vm-status"></span>
-                <strong>esxi-04.vclass.rap3</strong>
-              </div>
-              <div style="color: #4caf50;">정상</div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
 
-  <!-- Step 7: iSCSI 스토리지 -->
-  <div class="step" id="step7">
-    <div class="vcenter-screen">
-      <div class="vcenter-header">
-        <div class="vcenter-logo">VMware vSphere Client - 스토리지</div>
-      </div>
-      <div class="vcenter-main">
-        <div class="vcenter-content" style="width: 100%;">
-          <h2 style="margin-bottom: 30px; color: #fff;">iSCSI 스토리지 구성 완료</h2>
-          <div style="max-width: 800px; margin: 0 auto;">
-            <div class="vm-list">
-              <div class="vm-item">
-                <div><strong>iSCSI Target</strong></div>
-                <div style="color: #4fc3f7;">iqn.2025-01.lan.labshandson:target1</div>
-              </div>
-              <div class="vm-item">
-                <div><strong>데이터스토어</strong></div>
-                <div style="color: #4caf50;">iSCSI-Datastore-01 (2TB)</div>
-              </div>
-              <div class="vm-item">
-                <div><strong>다중 경로</strong></div>
-                <div style="color: #4caf50;">활성화 (경로 2개)</div>
-              </div>
+    <!-- Step 6: VM 전원 켜기 -->
+    <div class="step" id="step6">
+        <div class="esxi-client">
+            <div class="esxi-nav">
+                <div class="esxi-logo">ESXi 호스트 클라이언트</div>
+                <div class="esxi-nav-item active">가상 시스템</div>
+                <div style="margin-left: auto; color: #aaa;">root@esxi-01.vclass.rap3 ▼</div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Step 8: AD 사용자 관리 -->
-  <div class="step" id="step8">
-    <div class="windows-screen">
-      <div class="server-manager">
-        <div class="titlebar">
-          <div class="titlebar-title">Active Directory Users and Computers</div>
-          <div class="window-controls">
-            <div class="window-btn" style="background: #4caf50;"></div>
-            <div class="window-btn" style="background: #ff9800;"></div>
-            <div class="window-btn" style="background: #f44336;"></div>
-          </div>
-        </div>
-        <div class="server-content">
-          <div class="server-sidebar">
-            <div class="tree-item">labshandson.lan</div>
-            <div class="tree-item selected" style="padding-left: 20px;">OU=L1-Admin</div>
-            <div class="tree-item" style="padding-left: 20px;">OU=L2-Admin</div>
-            <div class="tree-item" style="padding-left: 20px;">OU=Users</div>
-          </div>
-          <div class="server-main">
-            <h2 style="margin-bottom: 20px;">조직 구성 단위 및 사용자</h2>
-            <div class="vm-list">
-              <div class="vm-item">
-                <div>👤 <strong>Admin01</strong></div>
-                <div>L1-Admin 그룹</div>
-              </div>
-              <div class="vm-item">
-                <div>👤 <strong>Admin02</strong></div>
-                <div>L2-Admin 그룹</div>
-              </div>
-              <div class="vm-item">
-                <div>👤 <strong>User01</strong></div>
-                <div>Users 그룹</div>
-              </div>
+            <div class="esxi-main">
+                <div class="esxi-sidebar">
+                    <div class="tree-item">🏠 esxi-01</div>
+                    <div class="tree-item selected" style="padding-left: 20px;">📁 가상 시스템</div>
+                </div>
+                <div class="esxi-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2>가상 시스템</h2>
+                        <button id="powerOnBtn" style="padding: 8px 20px; background: #4caf50; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-weight: 600;">▶ 전원 켜기</button>
+                    </div>
+                    <div class="vm-list">
+                        <div class="vm-item">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <span class="vm-status" id="vmStatusDot" style="background: #888;"></span>
+                                <strong>Pod12-Win2K22-DC</strong>
+                            </div>
+                            <div>
+                                <span id="vmPowerState" style="color: #888;">전원 끔</span>
+                                <span style="margin-left: 20px;">54.38 GB</span>
+                                <span style="margin-left: 20px;">VMware ESXi 8.0...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
     </div>
-  </div>
 
-  <!-- Step 9: 도메인 조인 -->
-  <div class="step" id="step9">
-    <div class="windows-screen" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-      <div style="text-align: center; color: white;">
-        <h1 style="font-size: 48px; margin-bottom: 20px;">🎉 도메인 조인 완료</h1>
-        <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 40px; border-radius: 15px; max-width: 600px; margin: 0 auto;">
-          <h2 style="margin-bottom: 30px;">WIN10-01</h2>
-          <div style="text-align: left; font-size: 18px; line-height: 2;">
-            <p>✓ 도메인: <strong>labshandson.lan</strong></p>
-            <p>✓ 컴퓨터 이름: <strong>WIN10-01</strong></p>
-            <p>✓ DNS 서버: <strong>192.168.0.200</strong></p>
-            <p>✓ 도메인 컨트롤러: <strong>Win2k22-DC</strong></p>
-          </div>
-          <div style="margin-top: 30px; padding: 20px; background: rgba(76, 175, 80, 0.2); border-radius: 8px;">
-            <strong style="color: #4caf50; font-size: 20px;">✓ 도메인 인증 성공</strong>
+    <!-- Step 7: Windows Server AD/DNS -->
+    <div class="step" id="step7">
+        <div class="windows-screen">
+            <div class="server-manager">
+                <div class="titlebar">
+                    <div class="titlebar-title">Server Manager</div>
+                    <div class="window-controls">
+                        <div class="window-btn" style="background: #4caf50;"></div>
+                        <div class="window-btn" style="background: #ff9800;"></div>
+                        <div class="window-btn" style="background: #f44336;"></div>
+                    </div>
+                </div>
+                <div class="menubar">
+                    <div>파일</div>
+                    <div>도구</div>
+                    <div>도움말</div>
+                </div>
+                <div class="server-content">
+                    <div class="server-sidebar">
+                        <div class="tree-item selected">대시보드</div>
+                        <div class="tree-item">로컬 서버</div>
+                        <div class="tree-item">역할 및 기능</div>
+                    </div>
+                    <div class="server-main">
+                        <h2 style="margin-bottom: 20px;">역할 및 기능 추가</h2>
+                        <div class="server-tile" id="addRoleBtn">
+                            <strong>Active Directory Domain Services</strong><br>
+                            <span style="font-size: 13px;">도메인 컨트롤러 구성</span>
+                        </div>
+                        <div class="server-tile">
+                            <strong>DNS Server</strong><br>
+                            <span style="font-size: 13px;">DNS 서비스 구성</span>
+                        </div>
+                        <div id="adProgress" style="display: none; margin-top: 30px;">
+                            <div class="spinner"></div>
+                            <p style="text-align: center; margin-top: 10px;">Active Directory 설치 중...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 8: vCenter 데이터센터 -->
+    <div class="step" id="step8">
+        <div class="vcenter-screen">
+            <div class="vcenter-header">
+                <div class="vcenter-logo">VMware vSphere Client</div>
+                <div style="color: #aaa;">administrator@vsphere.local ▼</div>
+            </div>
+            <div class="vcenter-main">
+                <div class="vcenter-tree">
+                    <div style="margin-bottom: 15px; color: #aaa; font-size: 12px;">인벤토리</div>
+                    <div class="tree-item">🏢 VCSA01</div>
+                    <div class="tree-item selected">📁 Datacenter01</div>
+                    <div class="tree-item" style="padding-left: 20px;">📦 클러스터</div>
+                </div>
+                <div class="vcenter-content">
+                    <h2 style="margin-bottom: 20px; color: #fff;">데이터센터 생성 완료</h2>
+                    <div class="vm-list">
+                        <div class="vm-item">
+                            <div><strong>데이터센터 이름</strong></div>
+                            <div style="color: #4fc3f7;">Datacenter01</div>
+                        </div>
+                        <div class="vm-item">
+                            <div><strong>상태</strong></div>
+                            <div style="color: #4caf50;">✓ 정상</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 9: 호스트 등록 -->
+    <div class="step" id="step9">
+        <div class="vcenter-screen">
+            <div class="vcenter-header">
+                <div class="vcenter-logo">VMware vSphere Client - 호스트 등록</div>
+            </div>
+            <div class="vcenter-main">
+                <div class="vcenter-tree">
+                    <div class="tree-item">🏢 VCSA01</div>
+                    <div class="tree-item selected">📁 Datacenter01</div>
+                    <div class="tree-item" style="padding-left: 20px;">📦 클러스터</div>
+                    <div class="tree-item" style="padding-left: 40px;">🖥️ ESXi-01</div>
+                    <div class="tree-item" style="padding-left: 40px;">🖥️ ESXi-02</div>
+                    <div class="tree-item" style="padding-left: 40px;">🖥️ ESXi-03</div>
+                </div>
+                <div class="vcenter-content">
+                    <h2 style="margin-bottom: 20px; color: #fff;">ESXi 호스트 등록 완료</h2>
+                    <div class="vm-list">
+                        <div class="vm-item">
+                            <div><strong>ESXi-01</strong></div>
+                            <div style="color: #4caf50;">✓ 연결됨</div>
+                        </div>
+                        <div class="vm-item">
+                            <div><strong>ESXi-02</strong></div>
+                            <div style="color: #4caf50;">✓ 연결됨</div>
+                        </div>
+                        <div class="vm-item">
+                            <div><strong>ESXi-03</strong></div>
+                            <div style="color: #4caf50;">✓ 연결됨</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 10: iSCSI 스토리지 -->
+    <div class="step" id="step10">
+        <div class="vcenter-screen">
+            <div class="vcenter-header">
+                <div class="vcenter-logo">VMware vSphere Client - 스토리지</div>
+            </div>
+            <div class="vcenter-main">
+                <div class="vcenter-tree">
+                    <div class="tree-item">🏢 VCSA01</div>
+                    <div class="tree-item">📁 Datacenter01</div>
+                    <div class="tree-item selected" style="padding-left: 20px;">💾 스토리지</div>
+                </div>
+                <div class="vcenter-content">
+                    <h2 style="margin-bottom: 20px; color: #fff;">iSCSI 스토리지 구성</h2>
+                    <div class="storage-item">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <strong>DataStore01</strong>
+                            <span style="color: #4caf50;">✓ 활성</span>
+                        </div>
+                        <div style="font-size: 13px; color: #aaa;">
+                            유형: VMFS 6 | 용량: 2.00 TB | 사용 가능: 1.85 TB
+                        </div>
+                    </div>
+                    <div class="storage-item">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <strong>iSCSI-LUN01</strong>
+                            <span style="color: #4caf50;">✓ 활성</span>
+                        </div>
+                        <div style="font-size: 13px; color: #aaa;">
+                            유형: iSCSI | 용량: 5.00 TB | 사용 가능: 4.92 TB
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 11: AD 사용자 관리 -->
+    <div class="step" id="step11">
+        <div class="windows-screen">
+            <div class="server-manager">
+                <div class="titlebar">
+                    <div class="titlebar-title">Active Directory 사용자 및 컴퓨터</div>
+                    <div class="window-controls">
+                        <div class="window-btn" style="background: #4caf50;"></div>
+                        <div class="window-btn" style="background: #ff9800;"></div>
+                        <div class="window-btn" style="background: #f44336;"></div>
+                    </div>
+                </div>
+                <div class="menubar">
+                    <div>파일</div>
+                    <div>작업</div>
+                    <div>보기</div>
+                    <div>도움말</div>
+                </div>
+                <div class="server-content">
+                    <div class="server-sidebar">
+                        <div class="tree-item">🌐 vclass.rap3</div>
+                        <div class="tree-item selected" style="padding-left: 20px;">👥 Users</div>
+                        <div class="tree-item" style="padding-left: 20px;">💻 Computers</div>
+                    </div>
+                    <div class="server-main">
+                        <h2 style="margin-bottom: 20px;">도메인 사용자</h2>
+                        <div class="user-list">
+                            <div class="user-item">
+                                <div><strong>👤 Administrator</strong></div>
+                                <div style="color: #4caf50;">활성</div>
+                            </div>
+                            <div class="user-item">
+                                <div><strong>👤 user01</strong></div>
+                                <div style="color: #4caf50;">활성</div>
+                            </div>
+                            <div class="user-item">
+                                <div><strong>👤 user02</strong></div>
+                                <div style="color: #4caf50;">활성</div>
+                            </div>
+                            <div class="user-item">
+                                <div><strong>👤 vmadmin</strong></div>
+                                <div style="color: #4caf50;">활성</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 12: 도메인 조인 -->
+    <div class="step" id="step12">
+        <div class="windows-screen">
+            <div style="background: #fff; color: #000; width: 500px; border-radius: 8px; box-shadow: 0 10px 50px rgba(0,0,0,0.7); padding: 30px;">
+                <h2 style="margin-bottom: 20px; color: #333;">시스템 속성</h2>
+                <div class="form-group">
+                    <label style="color: #333;">컴퓨터 이름:</label>
+                    <input type="text" value="POD12-CLIENT01" readonly style="background: #f0f0f0; color: #333; border: 1px solid #ddd;">
+                </div>
+                <div class="form-group">
+                    <label style="color: #333;">도메인:</label>
+                    <input type="text" id="domainInput" value="" readonly style="background: #fff; color: #333; border: 1px solid #ddd;">
+                </div>
+                <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px;">
+                    <strong style="color: #2e7d32;">✓ vclass.rap3 도메인에 성공적으로 가입했습니다</strong>
+                </div>
+                <button id="domainJoinBtn" style="width: 100%; padding: 12px; background: #0078d4; border: none; border-radius: 4px; color: #fff; font-weight: 600; cursor: pointer; margin-top: 20px;">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 13: 완료 -->
+    <div class="step" id="step13">
+        <div class="complete-screen">
+            <div class="complete-icon">🎉</div>
+            <h1 style="font-size: 42px; margin-bottom: 15px;">인프라 구축 완료!</h1>
+            <p style="font-size: 18px; opacity: 0.9; margin-bottom: 30px;">ESXi/VCSA 가상화 인프라가 성공적으로 구축되었습니다</p>
+            <div class="summary-box">
+                <h3 style="margin-bottom: 20px;">구축 요약</h3>
+                <div class="summary-item">
+                    <span>ESXi 호스트</span>
+                    <strong>3대</strong>
+                </div>
+                <div class="summary-item">
+                    <span>vCenter Server</span>
+                    <strong>1대</strong>
+                </div>
+                <div class="summary-item">
+                    <span>가상 머신</span>
+                    <strong>1대 (DC)</strong>
+                </div>
+                <div class="summary-item">
+                    <span>스토리지</span>
+                    <strong>iSCSI 구성 완료</strong>
+                </div>
+                <div class="summary-item">
+                    <span>도메인</span>
+                    <strong>vclass.rap3</strong>
+                </div>
+                <div class="summary-item">
+                    <span>총 소요 시간</span>
+                    <strong>13 단계</strong>
+                </div>
+            </div>
+            <p style="margin-top: 30px; font-size: 14px; opacity: 0.7;">처음부터 다시 보려면 '이전' 버튼을 눌러주세요</p>
+        </div>
+    </div>
 </div>
-</div>
-</div>
-</div>
-  </div>
-  <!-- Step 10: 완료 -->
-  <div class="step" id="step10">
-    <div class="vcenter-screen">
-      <div class="vcenter-header">
-        <div class="vcenter-logo">VMware vSphere Client</div>
-        <div style="color: #aaa;">administrator@vsphere.local ▼</div>
-      </div>
-      <div class="vcenter-main" style="flex-direction: column; align-items: center; justify-content: center;">
-        <div style="text-align: center; color: #fff;">
-          <h1 style="font-size: 48px; margin-bottom: 20px;">🏁 인프라 구축 완료!</h1>
-          <p style="font-size: 18px; margin-bottom: 30px;">ESXi 호스트, vCenter, iSCSI 스토리지, AD/DNS 및 도메인 조인까지<br>모든 단계가 성공적으로 완료되었습니다.</p>
-      <div style="background: rgba(255,255,255,0.05); padding: 30px; border-radius: 15px; max-width: 700px; margin: 0 auto; color: #fff;">
-        <h2 style="margin-bottom: 20px; color: #4fc3f7;">요약 정보</h2>
-        <div class="vm-list">
-          <div class="vm-item">
-            <div><strong>데이터센터</strong></div>
-            <div style="color: #4fc3f7;">Datacenter01</div>
-          </div>
-          <div class="vm-item">
-            <div><strong>등록된 ESXi 호스트</strong></div>
-            <div style="color: #4caf50;">ESXi-01 ~ ESXi-04</div>
-          </div>
-          <div class="vm-item">
-            <div><strong>iSCSI 데이터스토어</strong></div>
-            <div style="color: #4caf50;">iSCSI-Datastore-01 (2TB)</div>
-          </div>
-          <div class="vm-item">
-            <div><strong>도메인</strong></div>
-            <div style="color: #4caf50;">labshandson.lan</div>
-          </div>
-          <div class="vm-item">
-            <div><strong>도메인 컴퓨터</strong></div>
-            <div style="color: #4caf50;">WIN10-01</div>
-          </div>
-        </div>
-      </div>
 
-      <button id="restartBtn" style="margin-top: 40px; padding: 15px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; font-size: 16px;">
-        🔄 다시 시작
-      </button>
-    </div>
-  </div>
-</div>
-  </div>
-</div>
 <div class="fade-overlay" id="fadeOverlay"></div>
+
 <script>
-let autoPlay = false;
-let autoPlayInterval;
-let isAnimating = false;
+    let currentStep = 1;
+    const totalSteps = 13;
+    let isPlaying = false;
+    let playInterval = null;
 
-const steps = document.querySelectorAll('.step');
-let currentStep = 0;
-const totalSteps = steps.length;
+    const cursor = document.getElementById('cursor');
+    const cursorClick = document.getElementById('cursorClick');
+    const fadeOverlay = document.getElementById('fadeOverlay');
 
-const cursor = document.getElementById('cursor');
-const cursorClick = document.getElementById('cursorClick');
-const fadeOverlay = document.getElementById('fadeOverlay');
-
-document.getElementById('totalSteps').innerText = totalSteps;
-document.getElementById('currentStep').innerText = currentStep + 1;
-
-// 커서 이동 함수
-function moveCursor(x, y, duration = 800) {
-  return new Promise(resolve => {
-    cursor.style.transition = `all ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
-    cursor.style.left = x + 'px';
-    cursor.style.top = y + 'px';
-    cursor.classList.add('visible');
-    setTimeout(resolve, duration);
-  });
-}
-
-// 클릭 애니메이션
-function clickAnimation(x, y) {
-  return new Promise(resolve => {
-    cursorClick.style.left = x + 'px';
-    cursorClick.style.top = y + 'px';
-    cursorClick.classList.add('animate');
-    setTimeout(() => {
-      cursorClick.classList.remove('animate');
-      resolve();
-    }, 600);
-  });
-}
-
-// 타이핑 애니메이션
-function typeText(element, text, isPassword = false) {
-  return new Promise(resolve => {
-    let index = 0;
-    element.classList.add('typing');
-    const interval = setInterval(() => {
-      if (index < text.length) {
-        element.value += isPassword ? '*' : text[index];
-        index++;
-      } else {
-        clearInterval(interval);
-        element.classList.remove('typing');
-        setTimeout(resolve, 300);
-      }
-    }, 100);
-  });
-}
-
-// 페이드 전환 효과
-function fadeTransition() {
-  return new Promise(resolve => {
-    fadeOverlay.classList.add('active');
-    setTimeout(() => {
-      fadeOverlay.classList.remove('active');
-      resolve();
-    }, 500);
-  });
-}
-
-// Step 1: iDRAC 로그인 애니메이션
-async function animateStep1() {
-  if (currentStep !== 0) return;
-  isAnimating = true;
-  
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  const usernameInput = document.getElementById('username');
-  const passwordInput = document.getElementById('password');
-  const loginBtn = document.getElementById('loginBtn');
-  
-  const usernameRect = usernameInput.getBoundingClientRect();
-  await moveCursor(usernameRect.left + 50, usernameRect.top + 20);
-  await clickAnimation(usernameRect.left + 50, usernameRect.top + 20);
-  
-  usernameInput.focus();
-  await typeText(usernameInput, 'root');
-  
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  const passwordRect = passwordInput.getBoundingClientRect();
-  await moveCursor(passwordRect.left + 50, passwordRect.top + 20);
-  await clickAnimation(passwordRect.left + 50, passwordRect.top + 20);
-  
-  passwordInput.focus();
-  await typeText(passwordInput, 'calvin', true);
-  
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  const btnRect = loginBtn.getBoundingClientRect();
-  await moveCursor(btnRect.left + btnRect.width / 2, btnRect.top + btnRect.height / 2);
-  await clickAnimation(btnRect.left + btnRect.width / 2, btnRect.top + btnRect.height / 2);
-  
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  cursor.classList.remove('visible');
-  await fadeTransition();
-  
-  isAnimating = false;
-  
-  if (autoPlay) {
-    nextStep();
-  }
-}
-
-// Step 2: ESXi 설치 애니메이션
-async function animateStep2() {
-  if (currentStep !== 1) return;
-  isAnimating = true;
-  
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  const opt1 = document.getElementById('opt1');
-  const optRect = opt1.getBoundingClientRect();
-  
-  await moveCursor(optRect.left + 100, optRect.top + optRect.height / 2);
-  await clickAnimation(optRect.left + 100, optRect.top + optRect.height / 2);
-  
-  opt1.classList.add('selected');
-  
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  cursor.classList.remove('visible');
-  
-  const installProgress = document.getElementById('installProgress');
-  const progressFill = document.getElementById('progressFill');
-  const progressText = document.getElementById('progressText');
-  
-  installProgress.style.display = 'block';
-  
-  for (let i = 0; i <= 100; i += 5) {
-    progressFill.style.width = i + '%';
-    progressText.innerText = `Installing... ${i}%`;
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
-  
-  await new Promise(resolve => setTimeout(resolve, 500));
-  await fadeTransition();
-  
-  isAnimating = false;
-  
-  if (autoPlay) {
-    nextStep();
-  }
-}
-
-// Step 4: Windows Server 애니메이션
-async function animateStep4() {
-  if (currentStep !== 3) return;
-  isAnimating = true;
-  
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  const addRoleBtn = document.getElementById('addRoleBtn');
-  const btnRect = addRoleBtn.getBoundingClientRect();
-  
-  await moveCursor(btnRect.left + btnRect.width / 2, btnRect.top + btnRect.height / 2);
-  await clickAnimation(btnRect.left + btnRect.width / 2, btnRect.top + btnRect.height / 2);
-  
-  cursor.classList.remove('visible');
-  
-  document.getElementById('adProgress').style.display = 'block';
-  
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  await fadeTransition();
-  
-  isAnimating = false;
-  
-  if (autoPlay) {
-    nextStep();
-  }
-}
-
-function showStep(index) {
-  steps.forEach((step, i) => {
-    step.classList.toggle('active', i === index);
-  });
-  document.getElementById('currentStep').innerText = index + 1;
-  
-  // 각 단계별 자동 애니메이션 실행
-  if (index === 0 && autoPlay) {
-    setTimeout(() => animateStep1(), 500);
-  } else if (index === 1 && autoPlay) {
-    setTimeout(() => animateStep2(), 500);
-  } else if (index === 3 && autoPlay) {
-    setTimeout(() => animateStep4(), 500);
-  } else if (autoPlay && !isAnimating) {
-    setTimeout(() => {
-      if (currentStep < totalSteps - 1) {
-        nextStep();
-      } else {
-        stopAutoPlay();
-      }
-    }, 2500);
-  }
-}
-
-function nextStep() {
-  if (currentStep < totalSteps - 1 && !isAnimating) {
-    currentStep++;
-    showStep(currentStep);
-  } else if (currentStep === totalSteps - 1) {
-    stopAutoPlay();
-  }
-}
-
-function prevStep() {
-  if (currentStep > 0 && !isAnimating) {
-    currentStep--;
-    showStep(currentStep);
-    // 이전 단계로 가면 입력 필드 초기화
-    if (currentStep === 0) {
-      document.getElementById('username').value = '';
-      document.getElementById('password').value = '';
+    function updateStepIndicator() {
+        document.getElementById('currentStep').textContent = currentStep;
+        document.getElementById('prevBtn').disabled = currentStep === 1;
     }
-  }
-}
 
-function stopAutoPlay() {
-  autoPlay = false;
-  document.getElementById('playBtn').innerText = '▶ 재생';
-  if (autoPlayInterval) {
-    clearInterval(autoPlayInterval);
-  }
-}
+    function showStep(stepNum) {
+        document.querySelectorAll('.step').forEach(step => {
+            step.classList.remove('active');
+        });
+        document.getElementById(`step${stepNum}`).classList.add('active');
 
-document.getElementById('prevBtn').addEventListener('click', prevStep);
+        fadeOverlay.classList.add('active');
+        setTimeout(() => {
+            fadeOverlay.classList.remove('active');
+        }, 300);
 
-document.getElementById('nextBtn').addEventListener('click', () => {
-  if (!isAnimating) {
-    // 수동으로 다음 버튼을 누를 때도 애니메이션 실행
-    if (currentStep === 0) {
-      animateStep1().then(() => {
-        if (!autoPlay) {
-          currentStep++;
-          showStep(currentStep);
-        }
-      });
-    } else if (currentStep === 1) {
-      animateStep2().then(() => {
-        if (!autoPlay) {
-          currentStep++;
-          showStep(currentStep);
-        }
-      });
-    } else if (currentStep === 3) {
-      animateStep4().then(() => {
-        if (!autoPlay) {
-          currentStep++;
-          showStep(currentStep);
-        }
-      });
-    } else {
-      nextStep();
+        executeStepAnimation(stepNum);
     }
-  }
-});
 
-document.getElementById('playBtn').addEventListener('click', () => {
-  if (!autoPlay && !isAnimating) {
-    autoPlay = true;
-    document.getElementById('playBtn').innerText = '⏸ 일시정지';
-    
-    // 현재 단계에서 시작
-    if (currentStep === 0) {
-      animateStep1();
-    } else if (currentStep === 1) {
-      animateStep2();
-    } else if (currentStep === 3) {
-      animateStep4();
-    } else {
-      showStep(currentStep);
+    function moveCursor(element, callback) {
+        cursor.classList.add('visible');
+        const rect = element.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 10;
+        cursor.style.left = x + 'px';
+        cursor.style.top = y + 'px';
+        if (callback) setTimeout(callback, 1000);
     }
-  } else {
-    stopAutoPlay();
-  }
-});
 
-document.getElementById('restartBtn').addEventListener('click', () => {
-  currentStep = 0;
-  showStep(currentStep);
-  // 입력 필드 초기화
-  document.getElementById('username').value = '';
-  document.getElementById('password').value = '';
-  document.getElementById('installProgress').style.display = 'none';
-  document.getElementById('progressFill').style.width = '0%';
-  document.getElementById('adProgress').style.display = 'none';
-  document.getElementById('opt1').classList.remove('selected');
-  cursor.classList.remove('visible');
-  stopAutoPlay();
-});
+    function clickAt(element) {
+        const rect = element.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        cursorClick.style.left = x + 'px';
+        cursorClick.style.top = y + 'px';
+        cursorClick.classList.remove('animate');
+        void cursorClick.offsetWidth;
+        cursorClick.classList.add('animate');
+    }
 
-// 버튼 활성화/비활성화
-setInterval(() => {
-  document.getElementById('prevBtn').disabled = currentStep === 0 || isAnimating;
-  document.getElementById('nextBtn').disabled = currentStep === totalSteps - 1 || isAnimating;
-}, 100);
+    function typeText(element, text, delay = 100) {
+        return new Promise(resolve => {
+            element.classList.add('typing');
+            element.value = '';
+            element.removeAttribute('readonly');
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i < text.length) {
+                    element.value += text[i];
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    element.classList.remove('typing');
+                    element.setAttribute('readonly', 'readonly');
+                    resolve();
+                }
+            }, delay);
+        });
+    }
+
+    function animateProgress(element, textElement, duration = 3000) {
+        return new Promise(resolve => {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 2;
+                if (progress <= 100) {
+                    element.style.width = progress + '%';
+                    if (textElement) {
+                        textElement.textContent = `${progress}%`;
+                    }
+                } else {
+                    clearInterval(interval);
+                    resolve();
+                }
+            }, duration / 50);
+        });
+    }
+
+    async function executeStepAnimation(stepNum) {
+        cursor.classList.remove('visible');
+
+        switch(stepNum) {
+            case 1:
+                setTimeout(async () => {
+                    const usernameInput = document.getElementById('username');
+                    const passwordInput = document.getElementById('password');
+                    const loginBtn = document.getElementById('loginBtn');
+
+                    moveCursor(usernameInput, async () => {
+                        clickAt(usernameInput);
+                        await typeText(usernameInput, 'root', 80);
+
+                        moveCursor(passwordInput, async () => {
+                            clickAt(passwordInput);
+                            await typeText(passwordInput, '••••••••', 80);
+
+                            moveCursor(loginBtn, () => {
+                                clickAt(loginBtn);
+                                setTimeout(() => cursor.classList.remove('visible'), 500);
+                            });
+                        });
+                    });
+                }, 500);
+                break;
+
+            case 2:
+                setTimeout(() => {
+                    const opt1 = document.getElementById('opt1');
+                    const installProgress = document.getElementById('installProgress');
+                    const progressFill = document.getElementById('progressFill');
+                    const progressText = document.getElementById('progressText');
+
+                    opt1.classList.add('selected');
+                    setTimeout(() => {
+                        document.getElementById('installOptions').style.display = 'none';
+                        installProgress.style.display = 'block';
+                        animateProgress(progressFill, progressText, 3000);
+                    }, 1000);
+                }, 500);
+                break;
+
+            case 3:
+                setTimeout(async () => {
+                    const esxiUsername = document.getElementById('esxiUsername');
+                    const esxiPassword = document.getElementById('esxiPassword');
+                    const esxiLoginBtn = document.getElementById('esxiLoginBtn');
+
+                    moveCursor(esxiUsername, async () => {
+                        clickAt(esxiUsername);
+                        await typeText(esxiUsername, 'root', 80);
+
+                        moveCursor(esxiPassword, async () => {
+                            clickAt(esxiPassword);
+                            await typeText(esxiPassword, '••••••••', 80);
+
+                            moveCursor(esxiLoginBtn, () => {
+                                clickAt(esxiLoginBtn);
+                                setTimeout(() => cursor.classList.remove('visible'), 500);
+                            });
+                        });
+                    });
+                }, 500);
+                break;
+
+            case 4:
+                setTimeout(() => {
+                    const createVmBtn = document.getElementById('createVmBtn');
+                    moveCursor(createVmBtn, () => {
+                        clickAt(createVmBtn);
+                        setTimeout(() => cursor.classList.remove('visible'), 500);
+                    });
+                }, 500);
+                break;
+
+            case 5:
+                setTimeout(() => {
+                    const vmProgressFill = document.getElementById('vmProgressFill');
+                    const vmProgressText = document.getElementById('vmProgressText');
+                    animateProgress(vmProgressFill, vmProgressText, 2500);
+                }, 500);
+                break;
+
+            case 6:
+                setTimeout(() => {
+                    const powerOnBtn = document.getElementById('powerOnBtn');
+                    moveCursor(powerOnBtn, () => {
+                        clickAt(powerOnBtn);
+                        setTimeout(() => {
+                            document.getElementById('vmStatusDot').style.background = '#4caf50';
+                            document.getElementById('vmPowerState').textContent = '전원 켬';
+                            document.getElementById('vmPowerState').style.color = '#4caf50';
+                            cursor.classList.remove('visible');
+                        }, 500);
+                    });
+                }, 500);
+                break;
+
+            case 7:
+                setTimeout(() => {
+                    const addRoleBtn = document.getElementById('addRoleBtn');
+                    moveCursor(addRoleBtn, () => {
+                        clickAt(addRoleBtn);
+                        setTimeout(() => {
+                            document.getElementById('adProgress').style.display = 'block';
+                            cursor.classList.remove('visible');
+                        }, 500);
+                    });
+                }, 500);
+                break;
+
+            case 12:
+                setTimeout(async () => {
+                    const domainInput = document.getElementById('domainInput');
+                    moveCursor(domainInput, async () => {
+                        clickAt(domainInput);
+                        await typeText(domainInput, 'vclass.rap3', 80);
+                        setTimeout(() => cursor.classList.remove('visible'), 500);
+                    });
+                }, 500);
+                break;
+        }
+    }
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+        if (currentStep < totalSteps) {
+            currentStep++;
+            showStep(currentStep);
+            updateStepIndicator();
+        }
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+        if (currentStep > 1) {
+            currentStep--;
+            showStep(currentStep);
+            updateStepIndicator();
+        }
+    });
+
+    document.getElementById('playBtn').addEventListener('click', (e) => {
+        if (!isPlaying) {
+            isPlaying = true;
+            e.target.textContent = '⏸ 일시정지';
+            playInterval = setInterval(() => {
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    showStep(currentStep);
+                    updateStepIndicator();
+                } else {
+                    clearInterval(playInterval);
+                    isPlaying = false;
+                    e.target.textContent = '▶ 재생';
+                }
+            }, 5000);
+        } else {
+            isPlaying = false;
+            e.target.textContent = '▶ 재생';
+            clearInterval(playInterval);
+        }
+    });
+
+    updateStepIndicator();
+    executeStepAnimation(1);
 </script>
+
 </body>
 </html>
