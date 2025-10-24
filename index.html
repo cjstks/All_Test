@@ -43,6 +43,11 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
+.controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
 .step-indicator {
   background: rgba(255,255,255,0.1);
   padding: 8px 16px;
@@ -80,6 +85,10 @@ body {
   z-index: 9999;
   transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+  opacity: 0;
+}
+.cursor.visible {
+  opacity: 1;
 }
 .cursor svg {
   width: 100%;
@@ -166,6 +175,15 @@ body {
   border-radius: 4px;
   color: #fff;
   font-size: 14px;
+  transition: border-color 0.3s;
+}
+.form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: #0076ce;
+  box-shadow: 0 0 0 2px rgba(0, 118, 206, 0.2);
+}
+.form-group input.typing {
+  border-color: #0076ce;
 }
 .btn-submit {
   width: 100%;
@@ -177,6 +195,10 @@ body {
   font-weight: 600;
   cursor: pointer;
   margin-top: 10px;
+  transition: background 0.3s;
+}
+.btn-submit:hover {
+  background: #005a9e;
 }
 
 /* ESXi Install */
@@ -435,6 +457,23 @@ body {
   padding: 30px;
   overflow-y: auto;
 }
+
+/* Fade transition */
+.fade-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10000;
+  transition: opacity 0.5s ease;
+}
+.fade-overlay.active {
+  opacity: 1;
+}
 </style>
 </head>
 <body>
@@ -473,11 +512,11 @@ body {
         <h3 style="margin-bottom: 20px;">Login</h3>
         <div class="form-group">
           <label>Username:</label>
-          <input type="text" id="username" value="">
+          <input type="text" id="username" value="" readonly>
         </div>
         <div class="form-group">
           <label>Password:</label>
-          <input type="password" id="password" value="">
+          <input type="password" id="password" value="" readonly>
         </div>
         <div class="form-group">
           <label>Domain:</label>
@@ -761,13 +800,12 @@ body {
           </div>
           <div style="margin-top: 30px; padding: 20px; background: rgba(76, 175, 80, 0.2); border-radius: 8px;">
             <strong style="color: #4caf50; font-size: 20px;">✓ 도메인 인증 성공</strong>
-          </div>
-        </div>
-      </div>
-    </div>
+</div>
+</div>
+</div>
+</div>
   </div>
-
-    <!-- Step 10: 완료 -->
+  <!-- Step 10: 완료 -->
   <div class="step" id="step10">
     <div class="vcenter-screen">
       <div class="vcenter-header">
@@ -778,104 +816,347 @@ body {
         <div style="text-align: center; color: #fff;">
           <h1 style="font-size: 48px; margin-bottom: 20px;">🏁 인프라 구축 완료!</h1>
           <p style="font-size: 18px; margin-bottom: 30px;">ESXi 호스트, vCenter, iSCSI 스토리지, AD/DNS 및 도메인 조인까지<br>모든 단계가 성공적으로 완료되었습니다.</p>
-          
-          <div style="background: rgba(255,255,255,0.05); padding: 30px; border-radius: 15px; max-width: 700px; margin: 0 auto; color: #fff;">
-            <h2 style="margin-bottom: 20px; color: #4fc3f7;">요약 정보</h2>
-            <div class="vm-list">
-              <div class="vm-item">
-                <div><strong>데이터센터</strong></div>
-                <div style="color: #4fc3f7;">Datacenter01</div>
-              </div>
-              <div class="vm-item">
-                <div><strong>등록된 ESXi 호스트</strong></div>
-                <div style="color: #4caf50;">ESXi-01 ~ ESXi-04</div>
-              </div>
-              <div class="vm-item">
-                <div><strong>iSCSI 데이터스토어</strong></div>
-                <div style="color: #4caf50;">iSCSI-Datastore-01 (2TB)</div>
-              </div>
-              <div class="vm-item">
-                <div><strong>도메인</strong></div>
-                <div style="color: #4caf50;">labshandson.lan</div>
-              </div>
-              <div class="vm-item">
-                <div><strong>도메인 컴퓨터</strong></div>
-                <div style="color: #4caf50;">WIN10-01</div>
-              </div>
-            </div>
+      <div style="background: rgba(255,255,255,0.05); padding: 30px; border-radius: 15px; max-width: 700px; margin: 0 auto; color: #fff;">
+        <h2 style="margin-bottom: 20px; color: #4fc3f7;">요약 정보</h2>
+        <div class="vm-list">
+          <div class="vm-item">
+            <div><strong>데이터센터</strong></div>
+            <div style="color: #4fc3f7;">Datacenter01</div>
           </div>
-
-          <button id="restartBtn" style="margin-top: 40px; padding: 15px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; font-size: 16px;">
-            🔄 다시 시작
-          </button>
+          <div class="vm-item">
+            <div><strong>등록된 ESXi 호스트</strong></div>
+            <div style="color: #4caf50;">ESXi-01 ~ ESXi-04</div>
+          </div>
+          <div class="vm-item">
+            <div><strong>iSCSI 데이터스토어</strong></div>
+            <div style="color: #4caf50;">iSCSI-Datastore-01 (2TB)</div>
+          </div>
+          <div class="vm-item">
+            <div><strong>도메인</strong></div>
+            <div style="color: #4caf50;">labshandson.lan</div>
+          </div>
+          <div class="vm-item">
+            <div><strong>도메인 컴퓨터</strong></div>
+            <div style="color: #4caf50;">WIN10-01</div>
+          </div>
         </div>
       </div>
+
+      <button id="restartBtn" style="margin-top: 40px; padding: 15px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; font-size: 16px;">
+        🔄 다시 시작
+      </button>
     </div>
   </div>
 </div>
-
+  </div>
+</div>
+<div class="fade-overlay" id="fadeOverlay"></div>
 <script>
 let autoPlay = false;
 let autoPlayInterval;
+let isAnimating = false;
 
 const steps = document.querySelectorAll('.step');
 let currentStep = 0;
 const totalSteps = steps.length;
 
+const cursor = document.getElementById('cursor');
+const cursorClick = document.getElementById('cursorClick');
+const fadeOverlay = document.getElementById('fadeOverlay');
+
 document.getElementById('totalSteps').innerText = totalSteps;
 document.getElementById('currentStep').innerText = currentStep + 1;
+
+// 커서 이동 함수
+function moveCursor(x, y, duration = 800) {
+  return new Promise(resolve => {
+    cursor.style.transition = `all ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+    cursor.style.left = x + 'px';
+    cursor.style.top = y + 'px';
+    cursor.classList.add('visible');
+    setTimeout(resolve, duration);
+  });
+}
+
+// 클릭 애니메이션
+function clickAnimation(x, y) {
+  return new Promise(resolve => {
+    cursorClick.style.left = x + 'px';
+    cursorClick.style.top = y + 'px';
+    cursorClick.classList.add('animate');
+    setTimeout(() => {
+      cursorClick.classList.remove('animate');
+      resolve();
+    }, 600);
+  });
+}
+
+// 타이핑 애니메이션
+function typeText(element, text, isPassword = false) {
+  return new Promise(resolve => {
+    let index = 0;
+    element.classList.add('typing');
+    const interval = setInterval(() => {
+      if (index < text.length) {
+        element.value += isPassword ? '*' : text[index];
+        index++;
+      } else {
+        clearInterval(interval);
+        element.classList.remove('typing');
+        setTimeout(resolve, 300);
+      }
+    }, 100);
+  });
+}
+
+// 페이드 전환 효과
+function fadeTransition() {
+  return new Promise(resolve => {
+    fadeOverlay.classList.add('active');
+    setTimeout(() => {
+      fadeOverlay.classList.remove('active');
+      resolve();
+    }, 500);
+  });
+}
+
+// Step 1: iDRAC 로그인 애니메이션
+async function animateStep1() {
+  if (currentStep !== 0) return;
+  isAnimating = true;
+  
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  const usernameInput = document.getElementById('username');
+  const passwordInput = document.getElementById('password');
+  const loginBtn = document.getElementById('loginBtn');
+  
+  const usernameRect = usernameInput.getBoundingClientRect();
+  await moveCursor(usernameRect.left + 50, usernameRect.top + 20);
+  await clickAnimation(usernameRect.left + 50, usernameRect.top + 20);
+  
+  usernameInput.focus();
+  await typeText(usernameInput, 'root');
+  
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  const passwordRect = passwordInput.getBoundingClientRect();
+  await moveCursor(passwordRect.left + 50, passwordRect.top + 20);
+  await clickAnimation(passwordRect.left + 50, passwordRect.top + 20);
+  
+  passwordInput.focus();
+  await typeText(passwordInput, 'calvin', true);
+  
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  const btnRect = loginBtn.getBoundingClientRect();
+  await moveCursor(btnRect.left + btnRect.width / 2, btnRect.top + btnRect.height / 2);
+  await clickAnimation(btnRect.left + btnRect.width / 2, btnRect.top + btnRect.height / 2);
+  
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  cursor.classList.remove('visible');
+  await fadeTransition();
+  
+  isAnimating = false;
+  
+  if (autoPlay) {
+    nextStep();
+  }
+}
+
+// Step 2: ESXi 설치 애니메이션
+async function animateStep2() {
+  if (currentStep !== 1) return;
+  isAnimating = true;
+  
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  const opt1 = document.getElementById('opt1');
+  const optRect = opt1.getBoundingClientRect();
+  
+  await moveCursor(optRect.left + 100, optRect.top + optRect.height / 2);
+  await clickAnimation(optRect.left + 100, optRect.top + optRect.height / 2);
+  
+  opt1.classList.add('selected');
+  
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  cursor.classList.remove('visible');
+  
+  const installProgress = document.getElementById('installProgress');
+  const progressFill = document.getElementById('progressFill');
+  const progressText = document.getElementById('progressText');
+  
+  installProgress.style.display = 'block';
+  
+  for (let i = 0; i <= 100; i += 5) {
+    progressFill.style.width = i + '%';
+    progressText.innerText = `Installing... ${i}%`;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  
+  await new Promise(resolve => setTimeout(resolve, 500));
+  await fadeTransition();
+  
+  isAnimating = false;
+  
+  if (autoPlay) {
+    nextStep();
+  }
+}
+
+// Step 4: Windows Server 애니메이션
+async function animateStep4() {
+  if (currentStep !== 3) return;
+  isAnimating = true;
+  
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  const addRoleBtn = document.getElementById('addRoleBtn');
+  const btnRect = addRoleBtn.getBoundingClientRect();
+  
+  await moveCursor(btnRect.left + btnRect.width / 2, btnRect.top + btnRect.height / 2);
+  await clickAnimation(btnRect.left + btnRect.width / 2, btnRect.top + btnRect.height / 2);
+  
+  cursor.classList.remove('visible');
+  
+  document.getElementById('adProgress').style.display = 'block';
+  
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  await fadeTransition();
+  
+  isAnimating = false;
+  
+  if (autoPlay) {
+    nextStep();
+  }
+}
 
 function showStep(index) {
   steps.forEach((step, i) => {
     step.classList.toggle('active', i === index);
   });
   document.getElementById('currentStep').innerText = index + 1;
+  
+  // 각 단계별 자동 애니메이션 실행
+  if (index === 0 && autoPlay) {
+    setTimeout(() => animateStep1(), 500);
+  } else if (index === 1 && autoPlay) {
+    setTimeout(() => animateStep2(), 500);
+  } else if (index === 3 && autoPlay) {
+    setTimeout(() => animateStep4(), 500);
+  } else if (autoPlay && !isAnimating) {
+    setTimeout(() => {
+      if (currentStep < totalSteps - 1) {
+        nextStep();
+      } else {
+        stopAutoPlay();
+      }
+    }, 2500);
+  }
 }
 
-document.getElementById('prevBtn').addEventListener('click', () => {
-  if (currentStep > 0) {
-    currentStep--;
-    showStep(currentStep);
-  }
-});
-
-document.getElementById('nextBtn').addEventListener('click', () => {
-  if (currentStep < totalSteps - 1) {
+function nextStep() {
+  if (currentStep < totalSteps - 1 && !isAnimating) {
     currentStep++;
     showStep(currentStep);
+  } else if (currentStep === totalSteps - 1) {
+    stopAutoPlay();
+  }
+}
+
+function prevStep() {
+  if (currentStep > 0 && !isAnimating) {
+    currentStep--;
+    showStep(currentStep);
+    // 이전 단계로 가면 입력 필드 초기화
+    if (currentStep === 0) {
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+    }
+  }
+}
+
+function stopAutoPlay() {
+  autoPlay = false;
+  document.getElementById('playBtn').innerText = '▶ 재생';
+  if (autoPlayInterval) {
+    clearInterval(autoPlayInterval);
+  }
+}
+
+document.getElementById('prevBtn').addEventListener('click', prevStep);
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  if (!isAnimating) {
+    // 수동으로 다음 버튼을 누를 때도 애니메이션 실행
+    if (currentStep === 0) {
+      animateStep1().then(() => {
+        if (!autoPlay) {
+          currentStep++;
+          showStep(currentStep);
+        }
+      });
+    } else if (currentStep === 1) {
+      animateStep2().then(() => {
+        if (!autoPlay) {
+          currentStep++;
+          showStep(currentStep);
+        }
+      });
+    } else if (currentStep === 3) {
+      animateStep4().then(() => {
+        if (!autoPlay) {
+          currentStep++;
+          showStep(currentStep);
+        }
+      });
+    } else {
+      nextStep();
+    }
   }
 });
 
 document.getElementById('playBtn').addEventListener('click', () => {
-  if (!autoPlay) {
+  if (!autoPlay && !isAnimating) {
     autoPlay = true;
     document.getElementById('playBtn').innerText = '⏸ 일시정지';
-    autoPlayInterval = setInterval(() => {
-      if (currentStep < totalSteps - 1) {
-        currentStep++;
-        showStep(currentStep);
-      } else {
-        clearInterval(autoPlayInterval);
-        autoPlay = false;
-        document.getElementById('playBtn').innerText = '▶ 재생';
-      }
-    }, 2000); // 2초마다 자동 진행
+    
+    // 현재 단계에서 시작
+    if (currentStep === 0) {
+      animateStep1();
+    } else if (currentStep === 1) {
+      animateStep2();
+    } else if (currentStep === 3) {
+      animateStep4();
+    } else {
+      showStep(currentStep);
+    }
   } else {
-    autoPlay = false;
-    document.getElementById('playBtn').innerText = '▶ 재생';
-    clearInterval(autoPlayInterval);
+    stopAutoPlay();
   }
 });
 
 document.getElementById('restartBtn').addEventListener('click', () => {
   currentStep = 0;
   showStep(currentStep);
-  if (autoPlay) {
-    clearInterval(autoPlayInterval);
-    autoPlay = false;
-    document.getElementById('playBtn').innerText = '▶ 재생';
-  }
+  // 입력 필드 초기화
+  document.getElementById('username').value = '';
+  document.getElementById('password').value = '';
+  document.getElementById('installProgress').style.display = 'none';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('adProgress').style.display = 'none';
+  document.getElementById('opt1').classList.remove('selected');
+  cursor.classList.remove('visible');
+  stopAutoPlay();
 });
+
+// 버튼 활성화/비활성화
+setInterval(() => {
+  document.getElementById('prevBtn').disabled = currentStep === 0 || isAnimating;
+  document.getElementById('nextBtn').disabled = currentStep === totalSteps - 1 || isAnimating;
+}, 100);
 </script>
 </body>
 </html>
